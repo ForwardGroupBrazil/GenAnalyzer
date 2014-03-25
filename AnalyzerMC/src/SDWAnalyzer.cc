@@ -13,19 +13,20 @@
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "TLorentzVector.h"
 #include <math.h>
 
-class SDDWAnalyzer: public edm::EDAnalyzer {
+class SDWAnalyzer: public edm::EDAnalyzer {
   public:
     /// Constructor
-    SDDWAnalyzer(const edm::ParameterSet& pset);
+    SDWAnalyzer(const edm::ParameterSet& pset);
 
     /// Destructor
-    virtual ~SDDWAnalyzer();
+    virtual ~SDWAnalyzer();
 
     void analyze(const edm::Event & event, const edm::EventSetup& eventSetup);
     void fillHistos(int index);
@@ -42,6 +43,9 @@ class SDDWAnalyzer: public edm::EDAnalyzer {
     int index;
     bool debug;
     bool cmsAccept;
+    int counterWp;
+    int counterWm;
+    int counterZ;
 
     // Histograms
     std::vector<TH1F*> hVectorPartEta;
@@ -255,7 +259,7 @@ class SDDWAnalyzer: public edm::EDAnalyzer {
 };
 
 /// Constructor
-SDDWAnalyzer::SDDWAnalyzer(const edm::ParameterSet& pset)
+SDWAnalyzer::SDWAnalyzer(const edm::ParameterSet& pset)
 {
   genParticlesTag_ = pset.getParameter<edm::InputTag>("GenParticleTag");
   particle1Id_ = pset.getParameter<int>("Particle1Id");
@@ -270,10 +274,13 @@ SDDWAnalyzer::SDDWAnalyzer(const edm::ParameterSet& pset)
 }
 
 /// Destructor
-SDDWAnalyzer::~SDDWAnalyzer(){
+SDWAnalyzer::~SDWAnalyzer(){
 }
 
-void SDDWAnalyzer::beginJob(){
+void SDWAnalyzer::beginJob(){
+
+  counterWp=0;
+  counterWm=0;
 
   edm::Service<TFileService> fs;
   TH1::SetDefaultSumw2(true);
@@ -285,7 +292,7 @@ void SDDWAnalyzer::beginJob(){
   std::string step4 = "CMS_BosonWGapCastor";
   std::string step5 = "CMS_BosonWGapCastorAndHF";
   std::string single = "singleGap";
-  std::string singleZ = "singleGapZ";
+  std::string singleZ = "singleGapW";
 
   Group1.push_back(step0);
   Group1.push_back(step1);
@@ -622,10 +629,15 @@ void SDDWAnalyzer::beginJob(){
 
 }
 
-void SDDWAnalyzer::endJob(){
+void SDWAnalyzer::endJob(){
+
+  std::cout << "Counter W+: " << counterWp << std::endl;
+  std::cout << "Counter W-: " << counterWm << std::endl;
+  std::cout << "Counter Z: " << counterZ << std::endl;
+
 }
 
-void SDDWAnalyzer::fillHistos(int index){
+void SDWAnalyzer::fillHistos(int index){
 
   for (std::vector<std::string>::size_type j=0; j<etaAll.size(); j++){
     hVectorPartEta.at(index)->Fill(etaAll.at(j));
@@ -708,9 +720,9 @@ void SDDWAnalyzer::fillHistos(int index){
 
 }
 
-//void SDDWAnalyzer::fillHistos
+//void SDWAnalyzer::fillHistos
 
-void SDDWAnalyzer::analyze(const edm::Event & ev, const edm::EventSetup&){
+void SDWAnalyzer::analyze(const edm::Event & ev, const edm::EventSetup&){
 
   sumHFMinusGEN = 0.; sumCastorGEN = 0.; sumHFPlusGEN = 0.;
   deltaeta = 0.; deltaphi = 0.; deltapt = 0.;
@@ -764,6 +776,9 @@ void SDDWAnalyzer::analyze(const edm::Event & ev, const edm::EventSetup&){
   ptcut = false;
 
   // Generator Particles
+  //edm::Handle<reco::HepMCProduct> genParticles;
+  //ev.getByLabel(genParticlesTag_, genParticles);
+
   edm::Handle<reco::GenParticleCollection> genParticles;
   ev.getByLabel(genParticlesTag_, genParticles);
 
@@ -782,10 +797,28 @@ void SDDWAnalyzer::analyze(const edm::Event & ev, const edm::EventSetup&){
 
   for(reco::GenParticleCollection::const_iterator genpart = genParticles->begin(); genpart != genParticles->end(); ++genpart){
 
+    if (genpart->pdgId() == 24) {
+      if (debug) std::cout << "Boson W+" << std::endl;
+      ++counterWp;
+    }
+
+    if (genpart->pdgId() == -24) {
+      if (debug) std::cout << "Boson W-" << std::endl;
+      ++counterWm;
+    }
+
+    if (genpart->pdgId() == 23) {
+      if (debug) std::cout << "Boson Z" << std::endl;
+      ++counterZ;
+    }
+
+
     pf_gen = 0.;
     double pz = genpart->pz();
 
     if(genpart->status() == 1){ // only final state particles.
+
+      std::cout << "PDG id: " << genpart->pdgId() << std::endl;
 
       // Identifying Protons
       if(genpart->pdgId() == 2212){
@@ -868,11 +901,9 @@ void SDDWAnalyzer::analyze(const edm::Event & ev, const edm::EventSetup&){
 
       if(!cmsAccept || (cmsAccept && (genpart->eta() <=5.2 && genpart->eta() >= -6.2))){
 
-	if (debug) std::cout << "Accept: " << genpart->eta() <<std::endl;
-
 	// identifying leptons
-	if((particle1 == genParticles->end())&&(abs(genpart->pdgId()) == abs(particle1Id_))) {particle1 = genpart;lepton1=true;continue;}
-	if((particle2 == genParticles->end())&&(abs(genpart->pdgId()) == abs(particle2Id_))) {particle2 = genpart;metparticle=true;continue;}
+	if((particle1 == genParticles->end())&&(abs(genpart->pdgId()) == fabs(particle1Id_))) {particle1 = genpart;lepton1=true;continue;}
+	if((particle2 == genParticles->end())&&(abs(genpart->pdgId()) == fabs(particle2Id_))) {particle2 = genpart;metparticle=true;continue;}
 
 
 	// Other particles, not proton. Detector noise approximation cut ~3 GeV.
@@ -958,7 +989,7 @@ void SDDWAnalyzer::analyze(const edm::Event & ev, const edm::EventSetup&){
   }
 
   // Fill All CMS Particles and Proton
-  SDDWAnalyzer::fillHistos(0);
+  SDWAnalyzer::fillHistos(0);
 
   if(disystem){
 
@@ -986,10 +1017,8 @@ void SDDWAnalyzer::analyze(const edm::Event & ev, const edm::EventSetup&){
     dibosonEta = myboson.eta();
     dibosonPhi = myboson.phi();
     dibosonPt = myboson.pt();
-    dibosonM = 2*particle1->et()*particle2->et()*(1-TMath::Cos(fabs(particle1->phi()-particle2->phi())));
-
-    std::cout << "Test Cos(PI): " << TMath::Cos(3.14) << std::endl;
-    std::cout << "Test Cos(180): " << TMath::Cos(180) << std::endl;
+    //dibosonM = 2*particle1->et()*particle2->et()*(1-TMath::Cos(deltaphi));
+    dibosonM = myboson.M();
 
     diboson_px = myboson.px();
 
@@ -1007,7 +1036,7 @@ void SDDWAnalyzer::analyze(const edm::Event & ev, const edm::EventSetup&){
     if(particle1->pt() > 10. && particle2->pt() > 10.) ptcut = true;
 
     // Eta Acceptance CMS
-    if((particle1->eta() > -2.5 && particle1->eta()< 2.5) && (particle2->eta() > -2.5 && particle2->eta()< 2.5) ) leptonAcceptance = true;
+    if((particle1->eta() > -2.5 && particle1->eta()< 2.5)) leptonAcceptance = true;
 
     if (debug){
       std::cout << "\n< Dilepton >" << std::endl;
@@ -1031,24 +1060,24 @@ void SDDWAnalyzer::analyze(const edm::Event & ev, const edm::EventSetup&){
   // Fill Histograms
 
   // Dilepton CMS
-  if (leptonAcceptance) SDDWAnalyzer::fillHistos(1);
+  if (leptonAcceptance) SDWAnalyzer::fillHistos(1);
 
   // Dilepton CMS and pTCut
-  if (leptonAcceptance && ptcut) SDDWAnalyzer::fillHistos(2);
+  if (leptonAcceptance && ptcut) SDWAnalyzer::fillHistos(2);
 
   // CMS Boson Z full selection
-  if (leptonAcceptance && ptcut && wboson) SDDWAnalyzer::fillHistos(3);
+  if (leptonAcceptance && ptcut && wboson) SDWAnalyzer::fillHistos(3);
 
   // CMS Boson Z less restricted gap cut
-  if (leptonAcceptance && ptcut && wboson && sumCastorGEN==0) SDDWAnalyzer::fillHistos(4);
+  if (leptonAcceptance && ptcut && wboson && sumCastorGEN==0) SDWAnalyzer::fillHistos(4);
 
   // CMS Boson Z very restricted gap cut
-  if (leptonAcceptance && ptcut && wboson && HF_CASTOR_gap) SDDWAnalyzer::fillHistos(5);
+  if (leptonAcceptance && ptcut && wboson && HF_CASTOR_gap) SDWAnalyzer::fillHistos(5);
 
   // Check Diffraction
-  if (leptonAcceptance && ptcut && single_gap) SDDWAnalyzer::fillHistos(6);
-  if (leptonAcceptance && ptcut && wboson && single_gap) SDDWAnalyzer::fillHistos(7);
+  if (leptonAcceptance && ptcut && single_gap) SDWAnalyzer::fillHistos(6);
+  if (leptonAcceptance && ptcut && wboson && single_gap) SDWAnalyzer::fillHistos(7);
 
 }	
 
-DEFINE_FWK_MODULE(SDDWAnalyzer);
+DEFINE_FWK_MODULE(SDWAnalyzer);
