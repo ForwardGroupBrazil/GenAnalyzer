@@ -7,7 +7,7 @@ process.maxEvents = cms.untracked.PSet(
 )
 
 process.source = cms.Source("PoolSource",
-        ##fileNames = cms.untracked.vstring("file:/afs/cern.ch/work/d/dmf/private/PrivateMCProduction/Pomwig/CMSSW_6_2_0_patch1/src/POMWIG_SingleDiffractivePlusWEnu_7TeV_cff_py_GEN_SIM.root")
+        #fileNames = cms.untracked.vstring("file:/afs/cern.ch/work/d/dmf/private/PrivateMCProduction/Pomwig/CMSSW_6_2_0_patch1/src/POMWIG_SingleDiffractivePlusWEnu_7TeV_cff_py_GEN_SIM.root")
         #fileNames = cms.untracked.vstring("file:/afs/cern.ch/work/d/dmf/private/PrivateMCProduction/Pomwig/CMSSW_6_2_0_patch1/src/POMWIG_SingleDiffractivePlusWmunu_7TeV_cff_py_GEN_SIM.root")
        fileNames = cms.untracked.vstring("file:/afs/cern.ch/work/d/dmf/private/PrivateMCProduction/Pomwig/CMSSW_6_2_0_patch1/src/POMWIG_SingleDiffractivePlusZee_7TeV_cff_py_GEN_SIM.root")
 )
