@@ -1,5 +1,5 @@
 //---------------------------
-// GEN Diffractive Z Analyzer
+// GEN Diffractive W Analyzer
 //---------------------------
 
 #define _USE_MATH_DEFINES
@@ -45,7 +45,6 @@ class SDWAnalyzer: public edm::EDAnalyzer {
     bool cmsAccept;
     int counterWp;
     int counterWm;
-    int counterZ;
 
     // Histograms
     std::vector<TH1F*> hVectorPartEta;
@@ -633,7 +632,6 @@ void SDWAnalyzer::endJob(){
 
   std::cout << "Counter W+: " << counterWp << std::endl;
   std::cout << "Counter W-: " << counterWm << std::endl;
-  std::cout << "Counter Z: " << counterZ << std::endl;
 
 }
 
@@ -806,12 +804,6 @@ void SDWAnalyzer::analyze(const edm::Event & ev, const edm::EventSetup&){
       if (debug) std::cout << "Boson W-" << std::endl;
       ++counterWm;
     }
-
-    if (genpart->pdgId() == 23) {
-      if (debug) std::cout << "Boson Z" << std::endl;
-      ++counterZ;
-    }
-
 
     pf_gen = 0.;
     double pz = genpart->pz();
@@ -1065,13 +1057,13 @@ void SDWAnalyzer::analyze(const edm::Event & ev, const edm::EventSetup&){
   // Dilepton CMS and pTCut
   if (leptonAcceptance && ptcut) SDWAnalyzer::fillHistos(2);
 
-  // CMS Boson Z full selection
+  // CMS Boson W full selection
   if (leptonAcceptance && ptcut && wboson) SDWAnalyzer::fillHistos(3);
 
-  // CMS Boson Z less restricted gap cut
+  // CMS Boson W less restricted gap cut
   if (leptonAcceptance && ptcut && wboson && sumCastorGEN==0) SDWAnalyzer::fillHistos(4);
 
-  // CMS Boson Z very restricted gap cut
+  // CMS Boson W very restricted gap cut
   if (leptonAcceptance && ptcut && wboson && HF_CASTOR_gap) SDWAnalyzer::fillHistos(5);
 
   // Check Diffraction
